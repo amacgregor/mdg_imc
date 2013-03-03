@@ -88,7 +88,7 @@ class IMC {
     public function read()
     {
         while (true) {
-            $line = readline('>');
+            $line = readline('magento > ');
             if ($line == 'exit') {
                 $this->quit();
             }
