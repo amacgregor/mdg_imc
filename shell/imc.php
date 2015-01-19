@@ -96,7 +96,7 @@ class IMC {
                 $this->addToHistory($line);
                 try {
                     eval($line);
-                } catch (Exception $e) { // catch eval exceptions here so loop continues and shell does not exit;
+                } catch (Exception $e) {
                     Mage::printException($e);
                 }
                 echo "\n";
@@ -123,19 +123,7 @@ class IMC {
         if (!empty($line)) {
             $line = preg_quote($line);
             $funcs = get_defined_functions();
-            $constants = get_defined_constants();//use these?
             $avail = array_merge(get_declared_classes(),$funcs['user'], $funcs['internal'], array());
-	    /*$classNameRegex = '[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*';
-            if (substr($line, -4) == '\:\:') {
-		$class = substr($line,0, -4);
-		if (in_array($class, $avail)) {
-                    $methods = get_class_methods($class);
-                    foreach ($methods as $key => $method) {
-                        $methods[$key] = $class.'::'.$method;
-                    }
-                    return $methods;
-		}
-	    }*/
             $matches =  preg_grep("/^$line/", $avail);
             if (!empty($matches)) {//will segfault if we return empty array after 3 times...
                 return $matches;
