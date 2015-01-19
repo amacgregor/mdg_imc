@@ -94,7 +94,11 @@ class IMC {
             }
             if (!empty($line)) {
                 $this->addToHistory($line);
-                eval($line);
+                try {
+                    eval($line);
+                } catch (Exception $e) { // catch eval exceptions here so loop continues and shell does not exit;
+                    Mage::printException($e);
+                }
                 echo "\n";
             }
         }
