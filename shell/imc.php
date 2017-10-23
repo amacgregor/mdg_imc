@@ -35,27 +35,33 @@ class IMC {
     protected $historyFile = null;
     protected $histSize    = 20;
     protected $history     = array();
+    protected $readlineEnabled = null;
 
     protected function __construct()
     {
-
+        // we consider that readline not available on windows
+        $readlineEnabled =  (PHP_OS != 'WINNT');
         if (!empty($_SERVER['HOME'])) {
             $this->historyFile = $_SERVER['HOME'].'/.imc_history';
             if (!file_exists($this->historyFile)) {
                 file_put_contents($this->historyFile, '');
             }
-            readline_read_history($this->historyFile);
+            if ($readlineEnabled) { 
+                readline_read_history($this->historyFile);
+            }   
             $this->history = explode(file_get_contents($this->historyFile), "\n");
             if (isset($_ENV['HISTSIZE']) && $_ENV['HISTSIZE'] > 0) {
                 $this->histSize = $_ENV['HISTSIZE'];
             }
         }
         
-        readline_completion_function(array($this, 'completeCallback'));
+        if ($readlineEnabled) { 
+            readline_completion_function(array($this, 'completeCallback'));
+            # // Catch Ctrl+C, kill and SIGTERM
+            pcntl_signal(SIGTERM, array($this, 'sigintShutdown'));  
+            pcntl_signal(SIGINT, array($this, 'sigintShutdown')); 
+        }    
         register_shutdown_function(array($this, 'fatalErrorShutdown'));  
-        # // Catch Ctrl+C, kill and SIGTERM
-        pcntl_signal(SIGTERM, array($this, 'sigintShutdown'));  
-        pcntl_signal(SIGINT, array($this, 'sigintShutdown')); 
     }
 
     public function fatalErrorShutdown()
@@ -72,7 +78,7 @@ class IMC {
 
     public function __destruct()
     {
-        if (!empty($this->historyFile) && is_writable($this->historyFile)) {
+        if ($readlineEnabled && !empty($this->historyFile) && is_writable($this->historyFile)) {
             readline_write_history($this->historyFile);
         }
     }
@@ -88,7 +94,12 @@ class IMC {
     public function read()
     {
         while (true) {
-            $line = readline('magento > ');
+            if ($readlineEnabled) { 
+                $line = readline('magento > ');
+            } else {
+                echo 'magento >';
+                $line = stream_get_line(STDIN, 1024, PHP_EOL);
+            }    
             if ($line == 'exit') {
                 $this->quit();
             }
@@ -105,7 +116,9 @@ class IMC {
         if ($histsize = count($this->history) > $this->histSize) {
             $this->history = array_slice($this->history, $histsize - $this->histSize);
         }
-        readline_add_history($line);
+        if ($readlineEnabled) { 
+            readline_add_history($line);
+        }    
     }
 
     public function quit($code=0)
